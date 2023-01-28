@@ -1,0 +1,56 @@
+name: "wolfi-act"
+description: "Dynamic GitHub Actions from Wolfi packages"
+inputs:
+  packages:
+    description: "Comma-separated list of Wolfi packages to install"
+    required: true
+    default: "grype"
+  command:
+    description: "Command to run"
+    required: true
+    default: "echo \"Hello from wolfi-act!\""
+  apko-image:
+    description: "The apko image to build with"
+    required: true
+    default: "ghcr.io/wolfi-dev/apko:latest"
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        set -ex
+        trap "rm -f wolfi-act.apko.config wolfi-act.tar" EXIT
+
+        cat >./wolfi-act.apko.config <<EOL
+        contents:
+          repositories:
+            - https://packages.wolfi.dev/os
+          keyring:
+            - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+          packages:
+            - ca-certificates-bundle
+            - wolfi-baselayout
+            - busybox
+            - bash
+            # TODO: support multiple packages
+            - ${{ inputs.packages }}
+        EOL
+
+        docker run --rm \
+          -v ${PWD}:/work \
+          -w /work \
+          ${{ inputs.apko-image }} \
+          build \
+          --build-arch x86_64 \
+          --sbom=false \
+          wolfi-act.apko.config \
+          wolfi-act:latest \
+          wolfi-act.tar
+
+        docker load < wolfi-act.tar
+
+        docker run --rm --platform linux/amd64 \
+          -v ${PWD}:/work \
+          -w /work \
+          wolfi-act:latest \
+          bash -exc "${{ inputs.command }}"
