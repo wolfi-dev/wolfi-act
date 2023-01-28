@@ -10,4 +10,9 @@ jobs:
     - uses: jdolitsky/wolfi-act@main
       with:
         packages: grype
-        command: grype cgr.dev/chainguard/nginx
+        command: |
+          grype cgr.dev/chainguard/nginx
+          echo "---"
+          grype cgr.dev/chainguard/wolfi-base
+          echo "---"
+          whoami
