@@ -1,0 +1,13 @@
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: jdolitsky/wolfi-act@main
+      with:
+        packages: grype
+        command: grype cgr.dev/chainguard/nginx
