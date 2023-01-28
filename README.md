@@ -11,3 +11,5 @@ For example, run a grype scan:
     packages: grype
     command: grype cgr.dev/chainguard/nginx
 ```
+
+TODO: pass in the github env
