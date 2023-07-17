@@ -9,17 +9,15 @@ jobs:
     steps:
     - uses: jdolitsky/wolfi-act@main
       with:
-        packages: grype
+        packages: grype,crane
         command: |
+          set -x
+          for img in "cgr.dev/chainguard/nginx" "cgr.dev/chainguard/wolfi-base"; do
+            grype "${img}"
+            crane manifest "${img}"
+          done
           grype cgr.dev/chainguard/nginx
           echo "---"
           grype cgr.dev/chainguard/wolfi-base
           echo "---"
           whoami
-    - uses: jdolitsky/wolfi-act@main
-      with:
-        packages: crane
-        command: |
-          set -x
-          crane manifest cgr.dev/chainguard/nginx
-          crane manifest cgr.dev/chainguard/wolfi-base

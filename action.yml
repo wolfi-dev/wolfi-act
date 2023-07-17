@@ -23,13 +23,13 @@ runs:
       run: |
         set -e
 
-        debug="${{inputs.debug}}"
+        debug='${{inputs.debug}}'
         if [[ "${debug}" == "true" ]]; then
           echo "Enabling debug logging."
           set -x
         fi
 
-        if [[ "${{inputs.command}}" == "" ]]; then
+        if [[ '${{inputs.command}}' == '' ]]; then
           echo "Missing input: command"
           exit 1
         fi
@@ -45,9 +45,14 @@ runs:
             - wolfi-baselayout
             - busybox
             - bash
-            # TODO: support multiple packages
-            - ${{ inputs.packages }}
         EOL
+
+        packages='${{inputs.packages}}'
+        if [[ "${packages}" != "" ]]; then
+          for package in $(echo "${packages}" | sed 's/,/\n/g'); do
+            echo "    - ${package}" >> ./wolfi-act.apko.config.yaml
+          done
+        fi
 
         printf "Building ephemeral container image from Wolfi packages... "
         if [[ "${debug}" == "true" ]]; then
