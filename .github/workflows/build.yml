@@ -26,7 +26,7 @@ jobs:
             crane auth login ghcr.io -u "${{ github.repository_owner }}" -p "${{ github.token }}"
 
             # Publish image using apko
-            repo="ghcr.io/${{ github.repository_owner }}/maven-test"
+            repo="ghcr.io/${{ github.repository }}/maven-test"
             apko publish maven.apko.yaml "${repo}" \
               --repository-append=https://packages.wolfi.dev/os \
               --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
