@@ -18,18 +18,29 @@ jobs:
           command: |
             set -x
 
+            # Download an apko config file (maven)
             curl -L -o maven.apko.yaml \
               https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
 
-            cosign login ghcr.io -u "${{ github.repository_owner }}" -p "${{ github.token }}"
+            # Login to GHCR
+            cran auth login ghcr.io -u "${{ github.repository_owner }}" -p "${{ github.token }}"
 
-            REF="ghcr.io/jdolitsky/wolfi-act/testing/maven:latest"
-            apko publish maven.apko.yaml "${REF}" \
+            # Publish image using apko
+            repo="ghcr.io/${{ github.repository_owner }}/maven-test"
+            apko publish maven.apko.yaml "${repo}" \
               --repository-append=https://packages.wolfi.dev/os \
               --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
               --package-append=wolfi-baselayout \
-              --arch=x86_64,aarch64
+              --arch=x86_64,aarch64 \
+              --image-refs=apko.images
+            index_digest="$(head -n 1 apko.images)"
 
-            crane manifest "${REF}"
-            grype "${REF}"
-            trivy image "${REF}"
+            # Sign image with cosign
+            cosign sign --yes $(cat apko.images)
+
+            # Scan image with grype and trivy
+            grype "${index_digest}"
+            trivy image "${index_digest}"
+
+            # Tag image using crane
+            crane cp "${index_digest}" "${repo}:latest"
