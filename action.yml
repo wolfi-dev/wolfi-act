@@ -88,6 +88,8 @@ runs:
         fi
         echo "done."
 
+        env > wolfi-act.github.env
+
         echo "[🐙] Running the following command in ephemeral container image:"
         echo '${{ inputs.command }}'
         echo "[🐙] Output:"
@@ -95,12 +97,14 @@ runs:
           docker run -i --rm --platform linux/amd64 \
               -v ${PWD}:/work \
               -w /work \
+              --env-file wolfi-act.github.env \
               wolfi-act:latest-amd64 \
               bash -exc '${{ inputs.command }}'
         else
           docker run -i --rm --platform linux/amd64 \
               -v ${PWD}:/work \
               -w /work \
+              --env-file wolfi-act.github.env \
               wolfi-act:latest-amd64 \
               bash -ec '${{ inputs.command }}'
         fi

@@ -6,18 +6,28 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for GitHub OIDC Token
     steps:
-    - uses: jdolitsky/wolfi-act@main
-      with:
-        packages: grype,crane
-        command: |
-          set -x
-          for img in "cgr.dev/chainguard/nginx" "cgr.dev/chainguard/wolfi-base"; do
-            grype "${img}"
-            crane manifest "${img}"
-          done
-          grype cgr.dev/chainguard/nginx
-          echo "---"
-          grype cgr.dev/chainguard/wolfi-base
-          echo "---"
-          whoami
+      - name: Build, sign, inspect an image using wolfi-act
+        uses: jdolitsky/wolfi-act@main
+        with:
+          packages: curl,apko,cosign,crane,grype,trivy
+          command: |
+            set -x
+
+            curl -L -o maven.apko.yaml \
+              https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
+
+            REF="ghcr.io/jdolitsky/wolfi-act/testing/maven:latest"
+            apko publish maven.apko.yaml "${REF}" \
+              --repository-append=https://packages.wolfi.dev/os \
+              --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
+              --package-append=wolfi-baselayout \
+              --arch=x86_64,aarch64
+
+            crane manifest "${REF}"
+            grype "${REF}"
+            trivy image "${REF}"
