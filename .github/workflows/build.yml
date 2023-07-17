@@ -21,6 +21,8 @@ jobs:
             curl -L -o maven.apko.yaml \
               https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
 
+            cosign login ghcr.io -u "${{ github.repository_owner }}" -p "${{ github.token }}"
+
             REF="ghcr.io/jdolitsky/wolfi-act/testing/maven:latest"
             apko publish maven.apko.yaml "${REF}" \
               --repository-append=https://packages.wolfi.dev/os \
