@@ -83,12 +83,12 @@ runs:
           docker run -i --rm --platform linux/amd64 \
               -v ${PWD}:/work \
               -w /work \
-              wolfi-act:latest \
+              wolfi-act:latest-amd64 \
               bash -exc "${CMD}"
         else
           docker run -i --rm --platform linux/amd64 \
               -v ${PWD}:/work \
               -w /work \
-              wolfi-act:latest \
+              wolfi-act:latest-amd64 \
               bash -ec "${CMD}"
         fi
