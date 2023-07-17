@@ -16,3 +16,9 @@ jobs:
           grype cgr.dev/chainguard/wolfi-base
           echo "---"
           whoami
+    - uses: jdolitsky/wolfi-act@main
+      with:
+        packages: crane
+        command: |
+          crane manifest cgr.dev/chainguard/nginx
+          crane manifest cgr.dev/chainguard/wolfi-base
