@@ -1,4 +1,7 @@
 # wolfi-act
+
+![istockphoto-486310559-612x612](https://github.com/jdolitsky/wolfi-act/assets/393494/4e0cc0c9-c5a3-461b-a085-2702351cf869)
+
 Dynamic GitHub Actions from [Wolfi](https://wolfi.dev/) packages
 
 Never worry again about installing your favorite tools using upstream "installer"
