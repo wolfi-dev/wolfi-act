@@ -20,5 +20,6 @@ jobs:
       with:
         packages: crane
         command: |
+          set -x
           crane manifest cgr.dev/chainguard/nginx
           crane manifest cgr.dev/chainguard/wolfi-base
