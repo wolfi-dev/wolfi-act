@@ -88,7 +88,8 @@ runs:
         fi
         echo "done."
 
-        echo '[🐙] Running the following command in ephemeral container image: ${{ inputs.command }}'
+        echo '[🐙] Running the following command in ephemeral container image:"
+        echo '${{ inputs.command }}'
         echo "[🐙] Output:"
         if [[ "${debug}" == "true" ]]; then
           docker run -i --rm --platform linux/amd64 \
