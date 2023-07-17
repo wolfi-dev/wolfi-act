@@ -15,6 +15,7 @@ inputs:
     description: "Whether or not to add debug logging"
     required: false
     default: 'false'
+
 runs:
   using: "composite"
   steps:
@@ -26,6 +27,11 @@ runs:
         if [[ "${debug}" == "true" ]]; then
           echo "Enabling debug logging."
           set -x
+        fi
+
+        if [[ "${{inputs.command}}" == "" ]]; then
+          echo "Missing input: command"
+          exit 1
         fi
 
         cat >./wolfi-act.apko.config.yaml <<EOL
@@ -84,11 +90,11 @@ runs:
               -v ${PWD}:/work \
               -w /work \
               wolfi-act:latest-amd64 \
-              bash -exc "${CMD}"
+              bash -exc "${{ inputs.command }}"
         else
           docker run -i --rm --platform linux/amd64 \
               -v ${PWD}:/work \
               -w /work \
               wolfi-act:latest-amd64 \
-              bash -ec "${CMD}"
+              bash -ec "${{ inputs.command }}"
         fi
