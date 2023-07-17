@@ -1,6 +1,6 @@
 # wolfi-act
 
-![istockphoto-486310559-612x612](https://github.com/jdolitsky/wolfi-act/assets/393494/4e0cc0c9-c5a3-461b-a085-2702351cf869)
+![](https://github.com/wolfi-dev/wolfi-act/assets/393494/661c31fc-762f-4b53-a64f-56b116e7ba41)
 
 Dynamic GitHub Actions from [Wolfi](https://wolfi.dev/) packages
 
