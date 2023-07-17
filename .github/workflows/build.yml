@@ -3,6 +3,11 @@ on:
     branches:
       - main
   workflow_dispatch: {}
+env:
+  IMAGE_REPO: ghcr.io/${{ github.repository }}/wolfi-act-test
+  APKO_CONFIG: https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
+  GHCR_USER: ${{ github.repository_owner }}
+  GHCR_PASS: ${{ github.token }}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,16 +23,14 @@ jobs:
           command: |
             set -x
 
-            # Download an apko config file (maven)
-            curl -L -o maven.apko.yaml \
-              https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
+            # Download an apko config file
+            curl -L -o apko.yaml "${APKO_CONFIG}"
 
             # Login to GHCR
-            crane auth login ghcr.io -u "${{ github.repository_owner }}" -p "${{ github.token }}"
+            crane auth login ghcr.io -u "${GHCR_USER}" -p "${GHCR_PASS}"
 
             # Publish image using apko
-            repo="ghcr.io/${{ github.repository }}/maven-test"
-            apko publish maven.apko.yaml "${repo}" \
+            apko publish apko.yaml "${IMAGE_REPO}" \
               --repository-append=https://packages.wolfi.dev/os \
               --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
               --package-append=wolfi-baselayout \
@@ -43,4 +46,9 @@ jobs:
             trivy image "${index_digest}"
 
             # Tag image using crane
-            crane cp "${index_digest}" "${repo}:latest"
+            crane cp "${index_digest}" "${IMAGE_REPO}:latest"
+
+      - name: Make sure the image runs
+        run: |
+          set -x
+          docker run --rm "${IMAGE_REPO}:latest" --version
