@@ -10,6 +10,7 @@ jobs:
     - uses: jdolitsky/wolfi-act@main
       with:
         packages: grype
+        debug: true
         command: |
           grype cgr.dev/chainguard/nginx
           echo "---"
