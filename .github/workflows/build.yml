@@ -32,11 +32,11 @@ jobs:
               --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
               --package-append=wolfi-baselayout \
               --arch=x86_64,aarch64 \
-              --image-refs=apko.images
-            index_digest="$(head -n 1 apko.images)"
+              --image-refs=apko.images.txt | tee apko.index.txt
+            index_digest="$(cat apko.index.txt)"
 
             # Sign image with cosign
-            cosign sign --yes $(cat apko.images)
+            cosign sign --yes $(cat apko.images.txt)
 
             # Scan image with grype and trivy
             grype "${index_digest}"
