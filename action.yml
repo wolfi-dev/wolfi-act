@@ -22,11 +22,9 @@ runs:
       run: |
         set -e
 
-        build_img_mute="2>/dev/null"
-        load_img_mute=">/dev/null"
-        if [[ '${{inputs.debug}}' == 'true' ]]; then
-          build_img_mute=""
-          load_img_mute=""
+        debug="${{inputs.debug}}"
+        if [[ "${debug}" == "true" ]]; then
+          echo "Enabling debug logging."
           set -x
         fi
 
@@ -46,26 +44,51 @@ runs:
         EOL
 
         printf "Building ephemeral container image from Wolfi packages... "
-        docker run --rm \
-            -v ${PWD}:/work \
-            -w /work \
-            '${{ inputs.apko-image }}' \
-            build \
-            --arch=x86_64 \
-            --sbom=false \
-            wolfi-act.apko.config.yaml \
-            wolfi-act:latest \
-            wolfi-act.tar ${build_img_mute}
+        if [[ "${debug}" == "true" ]]; then
+          docker run --rm \
+              -v ${PWD}:/work \
+              -w /work \
+              '${{ inputs.apko-image }}' \
+              build \
+              --arch=x86_64 \
+              --sbom=false \
+              wolfi-act.apko.config.yaml \
+              wolfi-act:latest \
+              wolfi-act.tar
+        else 
+          docker run --rm \
+              -v ${PWD}:/work \
+              -w /work \
+              '${{ inputs.apko-image }}' \
+              build \
+              --arch=x86_64 \
+              --sbom=false \
+              wolfi-act.apko.config.yaml \
+              wolfi-act:latest \
+              wolfi-act.tar 2>/dev/null
+        fi
         echo "done."
 
         printf "Loading ephemeral container image into Docker... "
-        docker load < wolfi-act.tar ${load_img_mute}
+        if [[ "${debug}" == "true" ]]; then
+          docker load < wolfi-act.tar
+        else
+          docker load < wolfi-act.tar >/dev/null
+        fi
         echo "done."
 
         echo "Running the following command in ephemeral container image: ${CMD}"
         echo "Output:"
-        docker run -i --rm --platform linux/amd64 \
-            -v ${PWD}:/work \
-            -w /work \
-            wolfi-act:latest \
-            bash -ec "${CMD}"
+        if [[ "${debug}" == "true" ]]; then
+          docker run -i --rm --platform linux/amd64 \
+              -v ${PWD}:/work \
+              -w /work \
+              wolfi-act:latest \
+              bash -exc "${CMD}"
+        else
+          docker run -i --rm --platform linux/amd64 \
+              -v ${PWD}:/work \
+              -w /work \
+              wolfi-act:latest \
+              bash -ec "${CMD}"
+        fi
