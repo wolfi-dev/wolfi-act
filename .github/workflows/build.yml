@@ -23,7 +23,7 @@ jobs:
               https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
 
             # Login to GHCR
-            cran auth login ghcr.io -u "${{ github.repository_owner }}" -p "${{ github.token }}"
+            crane auth login ghcr.io -u "${{ github.repository_owner }}" -p "${{ github.token }}"
 
             # Publish image using apko
             repo="ghcr.io/${{ github.repository_owner }}/maven-test"
