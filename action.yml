@@ -88,7 +88,7 @@ runs:
         fi
         echo "done."
 
-        echo '[🐙] Running the following command in ephemeral container image:"
+        echo "[🐙] Running the following command in ephemeral container image:"
         echo '${{ inputs.command }}'
         echo "[🐙] Output:"
         if [[ "${debug}" == "true" ]]; then
