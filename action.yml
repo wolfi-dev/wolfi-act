@@ -4,24 +4,33 @@ inputs:
   packages:
     description: "Comma-separated list of Wolfi packages to install"
     required: true
-    default: "grype"
   command:
     description: "Command to run"
     required: true
-    default: "echo \"Hello from wolfi-act!\""
   apko-image:
     description: "The apko image to build with"
     required: true
     default: "ghcr.io/wolfi-dev/apko:latest"
+  debug:
+    description: "Whether or not to add debug logging"
+    required: false
+    default: 'false'
 runs:
   using: "composite"
   steps:
     - shell: bash
       run: |
-        set -ex
-        trap "rm -f wolfi-act.apko.config wolfi-act.tar" EXIT
+        set -e
 
-        cat >./wolfi-act.apko.config <<EOL
+        build_img_mute="2>/dev/null"
+        load_img_mute=">/dev/null"
+        if [[ '${{inputs.debug}}' == 'true' ]]; then
+          build_img_mute=""
+          load_img_mute=""
+          set -x
+        fi
+
+        cat >./wolfi-act.apko.config.yaml <<EOL
         contents:
           repositories:
             - https://packages.wolfi.dev/os
@@ -36,21 +45,27 @@ runs:
             - ${{ inputs.packages }}
         EOL
 
+        printf "Building ephemeral container image from Wolfi packages... "
         docker run --rm \
-          -v ${PWD}:/work \
-          -w /work \
-          ${{ inputs.apko-image }} \
-          build \
-          --build-arch x86_64 \
-          --sbom=false \
-          wolfi-act.apko.config \
-          wolfi-act:latest \
-          wolfi-act.tar
+            -v ${PWD}:/work \
+            -w /work \
+            '${{ inputs.apko-image }}' \
+            build \
+            --arch=x86_64 \
+            --sbom=false \
+            wolfi-act.apko.config.yaml \
+            wolfi-act:latest \
+            wolfi-act.tar ${build_img_mute}
+        echo "done."
 
-        docker load < wolfi-act.tar
+        printf "Loading ephemeral container image into Docker... "
+        docker load < wolfi-act.tar ${load_img_mute}
+        echo "done."
 
-        docker run --rm --platform linux/amd64 \
-          -v ${PWD}:/work \
-          -w /work \
-          wolfi-act:latest \
-          bash -exc "${{ inputs.command }}"
+        echo "Running the following command in ephemeral container image: ${CMD}"
+        echo "Output:"
+        docker run -i --rm --platform linux/amd64 \
+            -v ${PWD}:/work \
+            -w /work \
+            wolfi-act:latest \
+            bash -ec "${CMD}"

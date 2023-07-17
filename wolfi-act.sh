@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-set -ex
-trap "rm -f wolfi-act.apko.config wolfi-act.tar" EXIT
+set -e
+trap "rm -f wolfi-act.apko.config.yaml wolfi-act.tar" EXIT
 
 CMD=$@
 [[ "${CMD}" != "" ]] || CMD="echo \"Hello from wolfi-act!\""
 
-cat >./wolfi-act.apko.config <<EOL
+cat >./wolfi-act.apko.config.yaml <<EOL
 contents:
   repositories:
     - https://packages.wolfi.dev/os
@@ -17,24 +17,29 @@ contents:
     - wolfi-baselayout
     - busybox
     - bash
-    - grype
 EOL
 
+printf "Building ephemeral container image from Wolfi packages... "
 docker run --rm \
     -v ${PWD}:/work \
     -w /work \
     ghcr.io/wolfi-dev/apko:latest \
     build \
-    --build-arch x86_64 \
+    --arch x86_64 \
     --sbom=false \
-    wolfi-act.apko.config \
+    wolfi-act.apko.config.yaml \
     wolfi-act:latest \
-    wolfi-act.tar
+    wolfi-act.tar 2>/dev/null
+echo "done."
 
-docker load < wolfi-act.tar
+printf "Loading ephemeral container image into Docker... "
+docker load < wolfi-act.tar >/dev/null
+echo "done."
 
-docker run --rm --platform linux/amd64 \
+echo "Running the following command in ephemeral container image: ${CMD}"
+echo "Output:"
+docker run -i --rm --platform linux/amd64 \
     -v ${PWD}:/work \
     -w /work \
     wolfi-act:latest \
-    bash -exc "${CMD}"
+    bash -ec "${CMD}"
