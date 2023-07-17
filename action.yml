@@ -25,12 +25,12 @@ runs:
 
         debug='${{inputs.debug}}'
         if [[ "${debug}" == "true" ]]; then
-          echo "Enabling debug logging."
+          echo "[🐙] Enabling debug logging."
           set -x
         fi
 
         if [[ '${{inputs.command}}' == '' ]]; then
-          echo "Missing input: command"
+          echo "[🐙] Missing input: command"
           exit 1
         fi
 
@@ -54,7 +54,7 @@ runs:
           done
         fi
 
-        printf "Building ephemeral container image from Wolfi packages... "
+        printf "[🐙] Building ephemeral container image from Wolfi packages... "
         if [[ "${debug}" == "true" ]]; then
           docker run --rm \
               -v ${PWD}:/work \
@@ -80,7 +80,7 @@ runs:
         fi
         echo "done."
 
-        printf "Loading ephemeral container image into Docker... "
+        printf "[🐙] Loading ephemeral container image into Docker... "
         if [[ "${debug}" == "true" ]]; then
           docker load < wolfi-act.tar
         else
@@ -88,8 +88,8 @@ runs:
         fi
         echo "done."
 
-        echo 'Running the following command in ephemeral container image: ${{ inputs.command }}'
-        echo "Output:"
+        echo '[🐙] Running the following command in ephemeral container image: ${{ inputs.command }}'
+        echo "[🐙] Output:"
         if [[ "${debug}" == "true" ]]; then
           docker run -i --rm --platform linux/amd64 \
               -v ${PWD}:/work \
