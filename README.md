@@ -18,7 +18,7 @@ Wolfi, along with a `command` you wish to run.
 ### Example: run a grype and trivy scan on an image
 
 ```yaml
-- uses: jdolitsky/wolfi-act@main
+- uses: wolfi-dev/wolfi-act@main
   with:
     packages: grype,trivy
     command: |
@@ -59,7 +59,7 @@ jobs:
       id-token: write # needed for GitHub OIDC Token
     steps:
       - name: Build, sign, inspect an image using wolfi-act
-        uses: jdolitsky/wolfi-act@main
+        uses: wolfi-dev/wolfi-act@main
         with:
           packages: curl,apko,cosign,crane,grype,trivy
           command: |
