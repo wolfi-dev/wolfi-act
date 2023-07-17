@@ -83,18 +83,18 @@ runs:
         fi
         echo "done."
 
-        echo "Running the following command in ephemeral container image: ${CMD}"
+        echo 'Running the following command in ephemeral container image: ${{ inputs.command }}'
         echo "Output:"
         if [[ "${debug}" == "true" ]]; then
           docker run -i --rm --platform linux/amd64 \
               -v ${PWD}:/work \
               -w /work \
               wolfi-act:latest-amd64 \
-              bash -exc "${{ inputs.command }}"
+              bash -exc '${{ inputs.command }}'
         else
           docker run -i --rm --platform linux/amd64 \
               -v ${PWD}:/work \
               -w /work \
               wolfi-act:latest-amd64 \
-              bash -ec "${{ inputs.command }}"
+              bash -ec '${{ inputs.command }}'
         fi
