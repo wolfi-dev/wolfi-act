@@ -1,0 +1,83 @@
+name: ci
+
+on:
+  pull_request:
+env:
+  IMAGE_REPO: ttl.sh/test-${{ github.job }}-${{ github.run_id }}
+  APKO_CONFIG: https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - name: Build, sign, inspect an image using wolfi-act
+        uses: ./
+        with:
+          packages: curl,apko,cosign,crane,grype,trivy
+          command: |
+            set -x
+
+            # Download an apko config file
+            curl -L -o apko.yaml "${APKO_CONFIG}"
+
+            # Publish image using apko
+            apko publish apko.yaml "${IMAGE_REPO}" \
+              --repository-append=https://packages.wolfi.dev/os \
+              --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
+              --package-append=wolfi-baselayout \
+              --arch=x86_64,aarch64 \
+              --image-refs=apko.images.txt | tee apko.index.txt
+            index_digest="$(cat apko.index.txt)"
+
+            # Scan image with grype and trivy
+            grype "${index_digest}"
+            trivy image "${index_digest}"
+
+            # Tag image using crane
+            crane cp "${index_digest}" "${IMAGE_REPO}:latest"
+
+      - name: Make sure the image runs
+        run: |
+          set -x
+          docker run --rm "${IMAGE_REPO}:latest" --version
+
+  ci-debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - name: Build, sign, inspect an image using wolfi-act
+        uses: ./
+        with:
+          debug: "true"
+          packages: curl,apko,cosign,crane,grype,trivy
+          command: |
+            set -x
+
+            # Download an apko config file
+            curl -L -o apko.yaml "${APKO_CONFIG}"
+
+            # Publish image using apko
+            apko publish apko.yaml "${IMAGE_REPO}" \
+              --repository-append=https://packages.wolfi.dev/os \
+              --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
+              --package-append=wolfi-baselayout \
+              --arch=x86_64,aarch64 \
+              --image-refs=apko.images.txt | tee apko.index.txt
+            index_digest="$(cat apko.index.txt)"
+
+            # Scan image with grype and trivy
+            grype "${index_digest}"
+            trivy image "${index_digest}"
+
+            # Tag image using crane
+            crane cp "${index_digest}" "${IMAGE_REPO}:latest"
+
+      - name: Make sure the image runs
+        run: |
+          set -x
+          docker run --rm "${IMAGE_REPO}:latest" --version
