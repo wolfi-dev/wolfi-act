@@ -56,30 +56,18 @@ runs:
         fi
 
         printf "[🐙] Building ephemeral container image from Wolfi packages... "
-        if [[ "${debug}" == "true" ]]; then
-          docker run --rm \
-              -v ${PWD}:/work \
-              -w /work \
-              '${{ inputs.apko-image }}' \
-              build \
-              --arch=x86_64 \
-              --sbom=false \
-              wolfi-act.apko.config.yaml \
-              wolfi-act:latest \
-              wolfi-act.tar
-        else
-          echo "[🐙] Running debug"
-          docker run --rm \
-              -v ${PWD}:/work \
-              -w /work \
-              '${{ inputs.apko-image }}' \
-              build \
-              --arch=x86_64 \
-              --sbom=false \
-              wolfi-act.apko.config.yaml \
-              wolfi-act:latest \
-              wolfi-act.tar 2>/dev/null
-        fi
+
+        echo "[🐙] Running debug"
+        docker run --rm \
+            -v ${PWD}:/work \
+            -w /work \
+            '${{ inputs.apko-image }}' \
+            build \
+            --arch=x86_64 \
+            --sbom=false \
+            wolfi-act.apko.config.yaml \
+            wolfi-act:latest \
+            wolfi-act.tar 2>/dev/null
         echo "done."
 
         printf "[🐙] Loading ephemeral container image into Docker... "
