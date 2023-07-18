@@ -24,6 +24,7 @@ runs:
         set -e
 
         debug='${{inputs.debug}}'
+        echo "${debug}"
         if [[ "${debug}" == "true" ]]; then
           echo "[🐙] Enabling debug logging."
           set -x
@@ -66,7 +67,8 @@ runs:
               wolfi-act.apko.config.yaml \
               wolfi-act:latest \
               wolfi-act.tar
-        else 
+        else
+          echo "[🐙] Running debug"
           docker run --rm \
               -v ${PWD}:/work \
               -w /work \
