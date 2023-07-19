@@ -1,6 +1,6 @@
 # wolfi-act
 
-![](https://github.com/wolfi-dev/wolfi-act/assets/393494/661c31fc-762f-4b53-a64f-56b116e7ba41)
+![](./wolfi-act.jpg)
 
 Dynamic GitHub Actions from [Wolfi](https://wolfi.dev/) packages
 
@@ -15,84 +15,135 @@ and runs your command inside of it.
 Pass in `packages` with a comma-separated list of packages available in
 Wolfi, along with a `command` you wish to run.
 
-### Example: run a grype and trivy scan on an image
-
 ```yaml
 - uses: wolfi-dev/wolfi-act@main
   with:
-    packages: grype,trivy
+    packages: jq,cosign
     command: |
-      grype cgr.dev/chainguard/nginx
-      trivy image cgr.dev/chainguard/nginx
+      jq --version
+      cosign --version
 ```
 
-### Example: full image publish pipeline
+### Example: run a grype and trivy scan on an image
 
-Here's a full Github Actions workflow example which does the following (source [here](./.github/workflows/build.yml)):
-
-1. Installs tools: `curl`, `apko`, `cosign`, `crane`, `grype`, `trivy`
-2. Downloads an apko config file using `curl`
-3. Logs into GHCR using `crane`
-4. Publishes a container image using `apko`
-5. Signs the image using `cosign`
-6. Scans the image with `grype` and `trivy`
-7. Tags the image using `crane`
-8. Ensure that the tagged image runs using `docker`
+Source: [grype-trivy-scan-example.yaml](./examples/grype-trivy-scan-example.yaml)
 
 ```yaml
+# .github/workflows/grype-trivy-scan-example.yaml
 on:
   push:
     branches:
       - main
   workflow_dispatch: {}
-env:
-  IMAGE_REPO: ghcr.io/${{ github.repository }}/wolfi-act-test
-  APKO_CONFIG: https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
-  GHCR_USER: ${{ github.repository_owner }}
-  GHCR_PASS: ${{ github.token }}
 jobs:
-  build:
+  wolfi-act:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      id-token: write # needed for GitHub OIDC Token
+      id-token: write # needed for GitHub  OIDC Token
     steps:
-      - name: Build, sign, inspect an image using wolfi-act
-        uses: wolfi-dev/wolfi-act@main
+      - uses: actions/checkout@v3
+      - uses: wolfi-dev/wolfi-act@main
         with:
-          packages: curl,apko,cosign,crane,grype,trivy
+          packages: curl,apko,cosign,crane
+          command: |
+            set -x
+            grype cgr.dev/chainguard/nginx
+            trivy image cgr.dev/chainguard/nginx
+```
+
+### Example: build, push, sign, and tag an image
+
+Source: [oci-image-push-sign-tag-example.yaml](./examples/oci-image-push-sign-tag-example.yaml)
+
+```yaml
+# .github/workflows/oci-image-push-sign-tag-example.yaml
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+jobs:
+  wolfi-act:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for GitHub  OIDC Token
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wolfi-dev/wolfi-act@main
+        env:
+          OCI_HOST: ghcr.io
+          OCI_REPO: ${{ github.repository }}/wolfi-act-demo
+          OCI_USER: ${{ github.repository_owner }}
+          OCI_PASS: ${{ github.token }}
+          OCI_TAG: latest
+          APKO_ARCHS: x86_64,aarch64
+          APKO_KEYS: https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+          APKO_REPOS: https://packages.wolfi.dev/os
+          APKO_DEFAULT_CONF: https://raw.githubusercontent.com/chainguard-images/images/main/images/wolfi-base/configs/latest.apko.yaml
+        with:
+          packages: curl,apko,cosign,crane
           command: |
             set -x
 
-            # Download an apko config file
-            curl -L -o apko.yaml "${APKO_CONFIG}"
+            # Make sure repo has an apko.yaml file, otherwise use default
+            if [[ ! -f apko.yaml ]]; then
+              echo "Warning: no apko.yaml in repo, downloading from $APKO_DEFAULT_CONF"
+              curl -sL -o apko.yaml $APKO_DEFAULT_CONF
+            fi
 
-            # Login to GHCR
-            crane auth login ghcr.io -u "${GHCR_USER}" -p "${GHCR_PASS}"
+            # Login to OCI registry
+            apko login $OCI_HOST -u $OCI_USER -p $OCI_PASS
 
-            # Publish image using apko
-            apko publish apko.yaml "${IMAGE_REPO}" \
-              --repository-append=https://packages.wolfi.dev/os \
-              --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
-              --package-append=wolfi-baselayout \
-              --arch=x86_64,aarch64 \
-              --image-refs=apko.images.txt | tee apko.index.txt
-            index_digest="$(cat apko.index.txt)"
+            # Publish image with apko and capture the index digest
+            digest=$(apko publish --arch $APKO_ARCHS \
+                       -k $APKO_KEYS -r $APKO_REPOS \
+                       apko.yaml $OCI_HOST/$OCI_REPO)
 
-            # Sign image with cosign
-            cosign sign --yes $(cat apko.images.txt)
+            # Sign with cosign
+            cosign sign --yes $digest
 
-            # Scan image with grype and trivy
-            grype "${index_digest}"
-            trivy image "${index_digest}"
+            # Lastly, tag the image with crane
+            crane copy $digest $OCI_HOST/$OCI_REPO:$OCI_TAG
+```
 
-            # Tag image using crane
-            crane cp "${index_digest}" "${IMAGE_REPO}:latest"
 
-      - name: Make sure the image runs
-        run: |
-          set -x
-          docker run --rm "${IMAGE_REPO}:latest" --version
+### Example: run multiple versions of kubectl using build matrix
 
+Source: [multiple-versions-of-kubectl-example.yaml](./examples/multiple-versions-of-kubectl-example.yaml)
+
+```yaml
+# .github/workflows/multiple-versions-of-kubectl-example.yaml
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+jobs:
+  wolfi-act:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        wolfi_pkg_name_kubectl:
+          - kubectl-1.24
+          - kubectl-1.25
+          - kubectl-1.26
+          - kubectl # note: this is 1.27 or latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wolfi-dev/wolfi-act@main
+        with:
+          packages: ${{ matrix.wolfi_pkg_name_kubectl }}
+          command: |
+            set -x
+
+            # Make a symlink when "kubectl" is not the name of the binary in the package
+            if [[ "${{ matrix.wolfi_pkg_name_kubectl }}" != "kubectl" ]]; then
+              ln -sf /usr/bin/${{ matrix.wolfi_pkg_name_kubectl }} /usr/bin/kubectl
+            fi
+
+            kubectl version --client
 ```
