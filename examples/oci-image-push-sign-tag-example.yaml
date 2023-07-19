@@ -1,0 +1,50 @@
+# .github/workflows/oci-image-push-sign-tag-example.yaml
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+jobs:
+  wolfi-act:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for GitHub  OIDC Token
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wolfi-dev/wolfi-act@main
+        env:
+          OCI_HOST: ghcr.io
+          OCI_REPO: ${{ github.repository }}/wolfi-act-demo
+          OCI_USER: ${{ github.repository_owner }}
+          OCI_PASS: ${{ github.token }}
+          OCI_TAG: latest
+          APKO_ARCHS: x86_64,aarch64
+          APKO_KEYS: https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+          APKO_REPOS: https://packages.wolfi.dev/os
+          APKO_DEFAULT_CONF: https://raw.githubusercontent.com/chainguard-images/images/main/images/wolfi-base/configs/latest.apko.yaml
+        with:
+          packages: curl,apko,cosign,crane
+          command: |
+            set -x
+
+            # Make sure repo has an apko.yaml file, otherwise use default
+            if [[ ! -f apko.yaml ]]; then
+              echo "Warning: no apko.yaml in repo, downloading from $APKO_DEFAULT_CONF"
+              curl -sL -o apko.yaml $APKO_DEFAULT_CONF
+            fi
+
+            # Login to OCI registry
+            apko login $OCI_HOST -u $OCI_USER -p $OCI_PASS
+
+            # Publish image with apko and capture the index digest
+            digest=$(apko publish --arch $APKO_ARCHS \
+                       -k $APKO_KEYS -r $APKO_REPOS \
+                       apko.yaml $OCI_HOST/$OCI_REPO)
+
+            # Sign with cosign
+            cosign sign --yes $digest
+
+            # Lastly, tag the image with crane
+            crane copy $digest $OCI_HOST/$OCI_REPO:$OCI_TAG
