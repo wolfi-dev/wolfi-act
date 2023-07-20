@@ -1,0 +1,30 @@
+# .github/workflows/multiple-versions-of-kubectl-example.yaml
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+jobs:
+  wolfi-act:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        wolfi_pkg_name_kubectl:
+          - kubectl-1.24
+          - kubectl-1.25
+          - kubectl-1.26
+          - kubectl # note: this is 1.27 or latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wolfi-dev/wolfi-act@main
+        with:
+          packages: ${{ matrix.wolfi_pkg_name_kubectl }}
+          command: |
+            set -x
+
+            # Make a symlink when "kubectl" is not the name of the binary in the package
+            if [[ "${{ matrix.wolfi_pkg_name_kubectl }}" != "kubectl" ]]; then
+              ln -sf /usr/bin/${{ matrix.wolfi_pkg_name_kubectl }} /usr/bin/kubectl
+            fi
+
+            kubectl version --client

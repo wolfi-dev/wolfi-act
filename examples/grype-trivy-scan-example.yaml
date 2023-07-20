@@ -1,0 +1,22 @@
+# .github/workflows/grype-trivy-scan-example.yaml
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+jobs:
+  wolfi-act:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for GitHub  OIDC Token
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wolfi-dev/wolfi-act@main
+        with:
+          packages: curl,apko,cosign,crane
+          command: |
+            set -x
+            grype cgr.dev/chainguard/nginx
+            trivy image cgr.dev/chainguard/nginx
