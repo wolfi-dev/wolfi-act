@@ -38,10 +38,6 @@ on:
 jobs:
   wolfi-act:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      id-token: write # needed for GitHub  OIDC Token
     steps:
       - uses: actions/checkout@v3
       - uses: wolfi-dev/wolfi-act@main
