@@ -23,6 +23,8 @@ runs:
       run: |
         set -e
 
+        exit 5
+
         debug='${{inputs.debug}}'
         if [[ "${debug}" == "true" ]]; then
           echo "[🐙] Enabling debug logging."
