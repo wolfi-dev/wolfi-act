@@ -3,11 +3,13 @@ on:
     branches:
       - main
   workflow_dispatch: {}
+
 env:
   IMAGE_REPO: ghcr.io/${{ github.repository }}/wolfi-act-test
-  APKO_CONFIG: https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/configs/openjdk-17.apko.yaml
+  APKO_CONFIG: https://raw.githubusercontent.com/chainguard-images/images/main/images/maven/config/template.apko.yaml
   GHCR_USER: ${{ github.repository_owner }}
   GHCR_PASS: ${{ github.token }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,7 +35,7 @@ jobs:
             apko publish apko.yaml "${IMAGE_REPO}" \
               --repository-append=https://packages.wolfi.dev/os \
               --keyring-append=https://packages.wolfi.dev/os/wolfi-signing.rsa.pub \
-              --package-append=wolfi-baselayout \
+              --package-append=wolfi-baselayout,maven,openjdk-17,openjdk-17-default-jvm \
               --arch=x86_64,aarch64 \
               --image-refs=apko.images.txt | tee apko.index.txt
             index_digest="$(cat apko.index.txt)"
@@ -51,4 +53,4 @@ jobs:
       - name: Make sure the image runs
         run: |
           set -x
-          docker run --rm "${IMAGE_REPO}:latest" --version
+          docker run --rm -e JAVA_HOME=/usr/lib/jvm/java-17-openjdk "${IMAGE_REPO}:latest" --version
