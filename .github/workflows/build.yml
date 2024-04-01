@@ -10,6 +10,9 @@ env:
   GHCR_USER: ${{ github.repository_owner }}
   GHCR_PASS: ${{ github.token }}
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,8 +21,13 @@ jobs:
       packages: write
       id-token: write # needed for GitHub OIDC Token
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
       - name: Build, sign, inspect an image using wolfi-act
-        uses: wolfi-dev/wolfi-act@main
+        uses: wolfi-dev/wolfi-act@c7bc05c8af23bca710b267e0db3b39c939eb7b02 # main
         with:
           packages: curl,apko,cosign,crane,grype,trivy
           command: |
