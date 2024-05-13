@@ -10,7 +10,7 @@ inputs:
   apko-image:
     description: "The apko image to build with"
     required: true
-    default: "ghcr.io/wolfi-dev/apko:latest"
+    default: "cgr.dev/chainguard/apko:latest"
   debug:
     description: "Whether or not to add debug logging"
     required: false
