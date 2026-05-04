@@ -20,12 +20,17 @@ runs:
   using: "composite"
   steps:
     - shell: bash
+      env:
+        INPUT_DEBUG: ${{ inputs.debug }}
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_PACKAGES: ${{ inputs.packages }}
+        INPUT_APKO_IMAGE: ${{ inputs.apko-image }}
       run: |
         set -e
 
         debug_args=
         debug_args_image="-exc"
-        debug='${{inputs.debug}}'
+        debug="${INPUT_DEBUG}"
         if [[ "${debug}" == "true" ]]; then
           echo "[🐙] Enabling debug logging."
           set -x
@@ -33,7 +38,7 @@ runs:
           debug_args_image="-ec"
         fi
 
-        if [[ '${{inputs.command}}' == '' ]]; then
+        if [[ "${INPUT_COMMAND}" == '' ]]; then
           echo "[🐙] Missing input: command"
           exit 1
         fi
@@ -51,7 +56,7 @@ runs:
             - bash
         EOL
 
-        packages='${{inputs.packages}}'
+        packages="${INPUT_PACKAGES}"
         if [[ "${packages}" != "" ]]; then
           for package in $(echo "${packages}" | sed 's/,/\n/g'); do
             echo "    - ${package}" >> ./wolfi-act.apko.config.yaml
@@ -62,7 +67,7 @@ runs:
         eval docker run --rm \
             -v ${PWD}:/work \
             -w /work \
-            '${{ inputs.apko-image }}' \
+            "${INPUT_APKO_IMAGE}" \
             build \
             --arch=x86_64 \
             --sbom=false \
@@ -76,14 +81,26 @@ runs:
         eval docker load < wolfi-act.tar "${debug_args}"
         echo "done."
 
-        env > wolfi-act.github.env
+        # Capture runner env for the container, excluding INPUT_* vars and
+        # any var whose value contains embedded newlines (which no
+        # line-oriented env file format can represent). env -0 gives
+        # null-terminated records so multi-line values stay in one record;
+        # we read them in a while loop to avoid grep -v exit-code-1 when
+        # no records are filtered, which kills the pipeline under pipefail.
+        while IFS= read -r -d '' record; do
+          name="${record%%=*}"
+          value="${record#*=}"
+          [[ "$name" == INPUT_* ]] && continue
+          [[ "$value" == *$'\n'* ]] && continue
+          printf '%s\n' "$record"
+        done < <(env -0) > wolfi-act.github.env
 
         echo "[🐙] Running the following command in ephemeral container image:"
-        echo '${{ inputs.command }}'
+        echo "${INPUT_COMMAND}"
         echo "[🐙] Output:"
         docker run -i --rm --platform linux/amd64 \
             -v ${PWD}:/work \
             -w /work \
             --env-file wolfi-act.github.env \
             wolfi-act:latest-amd64 \
-            bash "${debug_args_image}" '${{ inputs.command }}'
+            bash "${debug_args_image}" "${INPUT_COMMAND}"
