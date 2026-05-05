@@ -65,7 +65,7 @@ runs:
 
         printf "[🐙] Building ephemeral container image from Wolfi packages... "
         eval docker run --rm \
-            -v ${PWD}:/work \
+            -v "${PWD}":/work \
             -w /work \
             "${INPUT_APKO_IMAGE}" \
             build \
@@ -99,7 +99,7 @@ runs:
         echo "${INPUT_COMMAND}"
         echo "[🐙] Output:"
         docker run -i --rm --platform linux/amd64 \
-            -v ${PWD}:/work \
+            -v "${PWD}":/work \
             -w /work \
             --env-file wolfi-act.github.env \
             wolfi-act:latest-amd64 \
