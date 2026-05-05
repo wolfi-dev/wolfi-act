@@ -6,8 +6,20 @@ name: Zizmor
 on:
   pull_request:
     branches: ['main']
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - 'action.yml'
+      - '.github/dependabot.yml'
+      - '.github/zizmor.yml'
   push:
     branches: ['main']
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - 'action.yml'
+      - '.github/dependabot.yml'
+      - '.github/zizmor.yml'
 
 permissions: {}
 
@@ -36,3 +48,5 @@ jobs:
 
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8 # v0.5.2
+        with:
+          persona: pedantic
